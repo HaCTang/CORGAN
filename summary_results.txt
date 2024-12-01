@@ -1,0 +1,210 @@
+Run 1:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31531 (98.53%)
+Unverified      :  21057 (65.80%)
+Verified        :  10943 (34.20%)
+
+Run 2:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31639 (98.87%)
+Unverified      :  20444 (63.89%)
+Verified        :  11556 (36.11%)
+
+Run 3:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31681 (99.00%)
+Unverified      :  21349 (66.72%)
+Verified        :  10651 (33.28%)
+
+Run 4:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31598 (98.74%)
+Unverified      :  19003 (59.38%)
+Verified        :  12997 (40.62%)
+
+Run 5:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31640 (98.88%)
+Unverified      :  21330 (66.66%)
+Verified        :  10670 (33.34%)
+
+Run 6:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31577 (98.68%)
+Unverified      :  18792 (58.73%)
+Verified        :  13208 (41.27%)
+
+Run 7:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31558 (98.62%)
+Unverified      :  17828 (55.71%)
+Verified        :  14172 (44.29%)
+
+Run 8:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31697 (99.05%)
+Unverified      :  20400 (63.75%)
+Verified        :  11600 (36.25%)
+
+Run 9:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31584 (98.70%)
+Unverified      :  18485 (57.77%)
+Verified        :  13515 (42.23%)
+
+Run 10:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31638 (98.87%)
+Unverified      :  19940 (62.31%)
+Verified        :  12060 (37.69%)
+
+Run 11:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31421 (98.19%)
+Unverified      :  16856 (52.68%)
+Verified        :  15144 (47.33%)
+
+Run 12:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31546 (98.58%)
+Unverified      :  17901 (55.94%)
+Verified        :  14099 (44.06%)
+
+Run 13:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31605 (98.77%)
+Unverified      :  19377 (60.55%)
+Verified        :  12623 (39.45%)
+
+Run 14:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31630 (98.84%)
+Unverified      :  19634 (61.36%)
+Verified        :  12366 (38.64%)
+
+Run 15:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31649 (98.90%)
+Unverified      :  19813 (61.92%)
+Verified        :  12187 (38.08%)
+
+Run 16:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31659 (98.93%)
+Unverified      :  20329 (63.53%)
+Verified        :  11671 (36.47%)
+
+Run 17:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31678 (98.99%)
+Unverified      :  21833 (68.23%)
+Verified        :  10167 (31.77%)
+
+Run 18:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31560 (98.62%)
+Unverified      :  20169 (63.03%)
+Verified        :  11831 (36.97%)
+
+Run 19:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31605 (98.77%)
+Unverified      :  19573 (61.17%)
+Verified        :  12427 (38.83%)
+
+Run 20:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31524 (98.51%)
+Unverified      :  18004 (56.26%)
+Verified        :  13996 (43.74%)
+
+Run 21:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31592 (98.72%)
+Unverified      :  19341 (60.44%)
+Verified        :  12659 (39.56%)
+
+Run 22:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31670 (98.97%)
+Unverified      :  20377 (63.68%)
+Verified        :  11623 (36.32%)
+
+Run 23:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31717 (99.12%)
+Unverified      :  22140 (69.19%)
+Verified        :   9860 (30.81%)
+
+Run 24:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31502 (98.44%)
+Unverified      :  16890 (52.78%)
+Verified        :  15110 (47.22%)
+
+Run 25:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31558 (98.62%)
+Unverified      :  18046 (56.39%)
+Verified        :  13954 (43.61%)
+
+Run 26:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31706 (99.08%)
+Unverified      :  22910 (71.59%)
+Verified        :   9090 (28.41%)
+
+Run 27:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31617 (98.80%)
+Unverified      :  20647 (64.52%)
+Verified        :  11353 (35.48%)
+
+Run 28:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31586 (98.71%)
+Unverified      :  19765 (61.77%)
+Verified        :  12235 (38.23%)
+
+Run 29:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31572 (98.66%)
+Unverified      :  20137 (62.93%)
+Verified        :  11863 (37.07%)
+
+Run 30:
+~~~ Summary Results ~~~
+Total samples   :  32000
+Unique          :  31653 (98.92%)
+Unverified      :  20461 (63.94%)
+Verified        :  11539 (36.06%)
+
