@@ -12,7 +12,8 @@ from organ.wgenerator import WGenerator
 from organ.rollout import Rollout
 from organ.discriminator import Discriminator
 from organ.wdiscriminator import WDiscriminator
-
+from organ.prior_classifier import prior_classifier
+from organ.classify_rollout import ClassifyRollout
 #from organ.discriminator import WDiscriminator as Discriminator
 
 from tensorflow import logging
@@ -130,7 +131,7 @@ class ORGAN(object):
         if 'START_TOKEN' in params:
             self.START_TOKEN = params['START_TOKEN']
         else:
-            self.START_TOKEN = 1
+            self.START_TOKEN = 0
 
         if 'SAMPLE_NUM' in params:
             self.SAMPLE_NUM = params['SAMPLE_NUM']
@@ -210,7 +211,9 @@ class ORGAN(object):
         self.PRETRAINED = False
         self.SESS_LOADED = False
         self.USERDEF_METRIC = False
-
+        self.PRIOR_CLASSIFIER = False
+        self.ORGAN_TRAINED = False
+        
     def load_training_set(self, file):
         """Specifies a training set for the model. It also finishes
         the model set up, as some of the internal parameters require
@@ -720,9 +723,9 @@ class ORGAN(object):
 
         for _ in range(int(num / self.GEN_BATCH_SIZE)):
             for class_label in range(0, self.CLASS_NUM):
-                # 创建class_label张量
-                class_labels = [class_label] * self.GEN_BATCH_SIZE
-                samples = self.generator.generate(self.sess, class_labels, label_input)
+                # # 创建class_label张量
+                # class_labels = [class_label] * self.GEN_BATCH_SIZE
+                samples = self.generator.generate(self.sess)
                 # 将生成的样本和对应的标签组合
                 for i in range(self.GEN_BATCH_SIZE):
                     generated_samples.append([samples[i].tolist(), class_label])
@@ -746,7 +749,7 @@ class ORGAN(object):
         #np.set_printoptions(precision=8, suppress=False)
         return
 
-    def train(self, ckpt_dir='checkpoints/'):
+    def organ_train(self, ckpt_dir='checkpoints/'):
         """Trains the model. If necessary, also includes pretraining."""
 
         if not self.PRETRAINED and not self.SESS_LOADED:
@@ -903,5 +906,84 @@ class ORGAN(object):
                     ckpt_dir, '{}_{}.ckpt'.format(self.PREFIX, label))
                 path = model_saver.save(self.sess, ckpt_file)
                 print('\nModel saved at {}'.format(path))
-
+        
+        self.ORGAN_TRAINED = True
         print('\n######### FINISHED #########')
+        
+    def conditional_train(self, ckpt_dir='checkpoints/'):
+        """训练条件生成器模型"""
+        
+        # 1. 首先确保已经通过organ_train训练过模型
+        if not self.ORGAN_TRAINED:
+            raise ValueError('Please run organ_train first before conditional_train')
+
+        # 2. 训练分类器
+        if self.CLASS_NUM > 1 and not self.PRIOR_CLASSIFIER:
+            prior_classifier(self.positive_samples)
+            print('\n分类器训练完成')
+            self.PRIOR_CLASSIFIER = True
+
+        # 3. 为每个类别创建一个生成器副本
+        generators = []
+        rollouts = []
+        for i in range(self.CLASS_NUM):
+            if self.WGAN:
+                gen = WGenerator(self.NUM_EMB, self.GEN_BATCH_SIZE,
+                               self.GEN_EMB_DIM, self.GEN_HIDDEN_DIM,
+                               self.MAX_LENGTH, self.START_TOKEN)
+            else:
+                gen = Generator(self.NUM_EMB, self.GEN_BATCH_SIZE,
+                              self.GEN_EMB_DIM, self.GEN_HIDDEN_DIM,
+                              self.MAX_LENGTH, self.START_TOKEN)
+            
+            # 复制训练好的生成器的参数
+            gen.copy_params(self.generator, self.sess)
+            generators.append(gen)
+            rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM))
+
+        # 4. 分别训练每个类别的生成器
+        for class_idx in range(self.CLASS_NUM):
+            print(f'\n训练第 {class_idx} 类生成器')
+            
+            for nbatch in tqdm(range(self.TOTAL_BATCH)):
+                metric = self.EDUCATION[nbatch]
+                
+                # 生成样本并计算奖励
+                gen_samples = self.generate_samples(self.SAMPLE_NUM, 
+                                                 label_input=True, 
+                                                 target_class=class_idx)
+                rewards = rollouts[class_idx].get_reward(
+                    self.sess, 
+                    gen_samples,
+                    16, 
+                    self.discriminator,
+                    self.LAMBDA
+                )
+                
+                # 更新生成器
+                g_loss = generators[class_idx].generator_step(
+                    self.sess, gen_samples, rewards)
+                
+                # 更新rollout参数
+                rollouts[class_idx].update_params()
+                
+                # 每隔一定步数保存模型
+                if nbatch % self.EPOCH_SAVES == 0 or nbatch == self.TOTAL_BATCH - 1:
+                    model_saver = tf.train.Saver()
+                    ckpt_file = os.path.join(
+                        ckpt_dir, 
+                        f'{self.PREFIX}_class{class_idx}_{nbatch}.ckpt'
+                    )
+                    path = model_saver.save(self.sess, ckpt_file)
+                    print(f'\n第 {class_idx} 类生成器模型保存在 {path}')
+
+        # 5. 保存最终模型
+        for class_idx in range(self.CLASS_NUM):
+            model_saver = tf.train.Saver()
+            ckpt_file = os.path.join(
+                ckpt_dir,
+                f'{self.PREFIX}_class{class_idx}_final.ckpt'
+            )
+            path = model_saver.save(self.sess, ckpt_file)
+            print(f'\n第 {class_idx} 类生成器最终模型保存在 {path}')
+
