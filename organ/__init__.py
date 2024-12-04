@@ -176,11 +176,17 @@ class ORGAN(object):
         else:
             self.BIG_SAMPLE_NUM = self.SAMPLE_NUM * 5
 
+        # FOR ORGAN
         if 'LAMBDA' in params:
             self.LAMBDA = params['LAMBDA']
         else:
             self.LAMBDA = 0.5
-
+        # for prior classifier
+        if 'LAMBDA_C' in params:
+            self.LAMBDA_C = params['LAMBDA_C']
+        else:
+            self.LAMBDA_C = True
+        
         # In case this parameter is not specified by the user,
         # it will be determined later, in the training set
         # loading.
@@ -738,23 +744,27 @@ class ORGAN(object):
         self.PRETRAINED = True
         return
 
-    def generate_samples(self, num, label_input=False, target_class=None):
+    def generate_samples(self, num, label_input=False, target_class=None, class_generator=None):
         """Generates molecules.
 
         Arguments
         -----------
-            - num. Integer 表示要生成的分子数量
-            - label_input. Boolean 是否将标签作为输入
+            - num. Integer number of molecules to generate
+            - label_input. Boolean whether to use target class as input
 
         """
         generated_samples = []
 
         for _ in range(int(num / self.GEN_BATCH_SIZE)):
-            for class_label in range(0, self.CLASS_NUM):
-                samples = self.generator.generate(self.sess)
-                # 将生成的样本和对应的标签组合
+            if label_input == False:
+                for class_label in range(0, self.CLASS_NUM):
+                    samples = self.generator.generate(self.sess)
+                    for i in range(self.GEN_BATCH_SIZE):
+                        generated_samples.append([samples[i].tolist(), class_label])
+            else:
+                samples = class_generator.generate(self.sess)
                 for i in range(self.GEN_BATCH_SIZE):
-                    generated_samples.append([samples[i].tolist(), class_label])
+                    generated_samples.append([samples[i].tolist(), target_class])
 
         return generated_samples
 
@@ -934,6 +944,73 @@ class ORGAN(object):
         self.ORGAN_TRAINED = True
         print('\n######### FINISHED #########')
         
+    def prior_classifier_fn(self, samples, class_labels, model_classifier):
+        """Calculate rewards for generated samples using classifier
+        
+        Args:
+            samples: generated samples
+            class_labels: target class labels
+            model_classifier: trained classifier model
+        
+        Returns:
+            rewards: reward values array
+        """
+        from organ.prior_classifier import predict_molecule, batch_predict
+        
+        # Decode sequences as SMILES strings
+        decoded = [mm.decode(sample, self.ord_dict) for sample in samples]
+        
+        # Use classifier to batch predict
+        predictions = batch_predict(decoded, model=model_classifier)
+        
+        # Calculate rewards
+        rewards = []
+        for pred, target_class in zip(predictions, class_labels):
+            if pred['success']:
+                # Get the prediction probability for the target class
+                # If the predicted class matches the target class, reward is the prediction probability
+                # Otherwise, reward is 1 - prediction probability
+                if pred['prediction'] == target_class:
+                    rewards.append(pred['probability'])
+                else:
+                    rewards.append(1 - pred['probability'])
+            else:
+                # If prediction fails, give the lowest reward
+                rewards.append(0.0)
+                
+        pct_unique = len(list(set(decoded))) / float(len(decoded))
+        weights = np.array([pct_unique / float(decoded.count(sample)) for sample in decoded])
+        rewards = np.array(rewards) * weights
+                
+        return rewards
+    
+    def report_classify_results(self, prior_classifier_fn, samples, class_labels, ord_dict):
+        """report classify results
+        
+        Args:
+            prior_classifier_fn: classify reward function
+            samples: generated samples
+            class_labels: target class labels
+            ord_dict: character mapping dictionary
+        """
+        decoded = [mm.decode(sample, ord_dict) for sample in samples]
+        
+        valid_count = sum(1 for s in decoded if mm.verify_sequence(s))
+        valid_ratio = valid_count / len(decoded)
+        
+        # Calculate classify accuracy
+        rewards = prior_classifier_fn(samples, class_labels)
+        accuracy = np.mean(rewards > 0.5)
+        
+        print('\nClassify results:')
+        print('------------------------')
+        print(f'Valid molecule ratio: {valid_ratio:.3f}')
+        print(f'Classify accuracy: {accuracy:.3f}')
+        print(f'Average reward: {np.mean(rewards):.3f}')
+        print(f'Max reward: {np.max(rewards):.3f}')
+        print(f'Min reward: {np.min(rewards):.3f}')
+        print('------------------------\n')
+    
     def conditional_train(self, ckpt_dir='checkpoints/', gen_steps=None):
         """Train conditional generator model
         
@@ -949,9 +1026,15 @@ class ORGAN(object):
 
         # 2. Train classifier
         if self.CLASS_NUM > 1 and not self.PRIOR_CLASSIFIER:
-            prior_classifier(self.positive_samples, ord_dict=self.ord_dict)
+            prior_classifier(self.train_samples)
             print('\nClassifier training completed')
             self.PRIOR_CLASSIFIER = True
+        
+        if self.PRIOR_CLASSIFIER:                   
+            def batch_reward(samples, train_samples=None):
+                # Assign target class labels to each sample
+                class_labels = [class_idx] * len(samples)  # class_idx is the current training generator class
+                return self.prior_classifier_fn(samples, class_labels, classifier_model)
         
         if self.verbose:
             print('\nSTARTING CONDITIONAL TRAINING')
@@ -961,69 +1044,70 @@ class ORGAN(object):
         total_steps = gen_steps if gen_steps is not None else self.TOTAL_BATCH
 
         # 3. Create generator copy for each class
-        generators = []
-        rollouts = []
+        self.class_generators = []
+        self.class_rollouts = []
         for i in range(self.CLASS_NUM):
-            if self.WGAN:
-                gen = WGenerator(self.NUM_EMB, self.GEN_BATCH_SIZE,
-                               self.GEN_EMB_DIM, self.GEN_HIDDEN_DIM,
-                               self.MAX_LENGTH, self.START_TOKEN)
-            else:
-                gen = Generator(self.NUM_EMB, self.GEN_BATCH_SIZE,
-                              self.GEN_EMB_DIM, self.GEN_HIDDEN_DIM,
-                              self.MAX_LENGTH, self.START_TOKEN)
-            
             # Copy parameters from trained generator
+            gen = self.generator.deepcopy(self.sess)
             gen.copy_params(self.generator, self.sess)
-            generators.append(gen)
-            rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
-
+            self.class_generators.append(gen)
+            self.class_rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
+        
+        # Load classifier model
+        from organ.prior_classifier import load_model
+        classifier_model = load_model()
+    
         # 4. Train each class generator
+        results_rows = []
+        losses = defaultdict(list)
         for class_idx in range(self.CLASS_NUM):
             print(f'\nTraining generator for class {class_idx}')
             
-            for nbatch in tqdm(range(total_steps)):
-                metric = self.EDUCATION[nbatch % self.TOTAL_BATCH]  # Loop through training program
+            t_bar = trange(total_steps)
+            for nbatch in t_bar:
+                # ... generated samples code remains unchanged ...
                 
-                # Generate samples and calculate rewards
-                gen_samples = self.generate_samples(self.SAMPLE_NUM, 
-                                                 label_input=True, 
-                                                 target_class=class_idx)
-                # 从生成的样本中提取序列部分
-                sequences = np.array([sample[0] for sample in gen_samples])  # 只使用序列部分，不包括标签
-                
-                # 按批次处理样本
-                for batch_idx in range(0, len(sequences), self.GEN_BATCH_SIZE):
-                    batch_sequences = sequences[batch_idx:batch_idx + self.GEN_BATCH_SIZE]
-                    
-                    # 如果最后一批不足一个批次，跳过
-                    if len(batch_sequences) < self.GEN_BATCH_SIZE:
-                        continue
-                    
-                    rewards = rollouts[class_idx].get_reward(
-                        self.sess, 
-                        batch_sequences,  # 传递一个批次的序列
-                        16, 
-                        self.discriminator,
-                        self.LAMBDA
+                # Calculate and report classify results
+                if nbatch % 10 == 0:
+                    gen_samples = self.generate_samples(self.BIG_SAMPLE_NUM, 
+                                                     label_input=True,
+                                                     target_class=class_idx,
+                                                     class_generator=self.class_generators[class_idx])
+                    gen_molecules, class_labels = zip(*gen_samples)
+                    # class_labels = [class_idx] * len(gen_samples)
+                    self.report_classify_results(
+                        lambda x, y: self.prior_classifier_fn(x, y, classifier_model),
+                        gen_molecules,
+                        class_labels,
+                        self.ord_dict
                     )
+                
+                # Train generator
+                for it in range(self.GEN_ITERATIONS):
+                    samples = self.class_generators[class_idx].generate(self.sess)
+                    rewards = self.class_rollouts[class_idx].get_reward(
+                        self.sess, samples, 16, self.discriminator,
+                        batch_reward, self.LAMBDA_C)
+                    g_loss = self.class_generators[class_idx].generator_step(
+                        self.sess, samples, rewards)
+                    losses['G-loss'].append(g_loss)
+                    self.class_generators[class_idx].g_count = self.class_generators[class_idx].g_count + 1
+                    # self.report_rewards(rewards, metric)
+                
+                t_bar.set_postfix(G_loss=np.mean(losses['G-loss']))
+                
+                # Update rollout parameters
+                self.class_rollouts[class_idx].update_params()
                     
-                    # Update generator
-                    g_loss = generators[class_idx].generator_step(
-                        self.sess, batch_sequences, rewards)
-                    
-                    # Update rollout parameters
-                    rollouts[class_idx].update_params()
-                    
-                    # Save model periodically
-                    if nbatch % self.EPOCH_SAVES == 0 or nbatch == total_steps - 1:
-                        model_saver = tf.train.Saver()
-                        ckpt_file = os.path.join(
-                            ckpt_dir, 
-                            f'{self.PREFIX}_class{class_idx}_{nbatch}.ckpt'
-                        )
-                        path = model_saver.save(self.sess, ckpt_file)
-                        print(f'\nClass {class_idx} generator model saved at {path}')
+                # Save model periodically
+                if nbatch % self.EPOCH_SAVES == 0 or nbatch == total_steps - 1:
+                    model_saver = tf.train.Saver()
+                    ckpt_file = os.path.join(
+                        ckpt_dir, 
+                        f'{self.PREFIX}_class{class_idx}_{nbatch}.ckpt'
+                    )
+                    path = model_saver.save(self.sess, ckpt_file)
+                    print(f'\nClass {class_idx} generator model saved at {path}')
 
         # 5. Save final models
         for class_idx in range(self.CLASS_NUM):

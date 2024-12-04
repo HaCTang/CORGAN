@@ -9,7 +9,6 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc
 import matplotlib.pyplot as plt
 import joblib
 import os
-from organ.mol_metrics import decode
 
 # Function to load data
 def classifier_data_loader(filepath):
@@ -78,41 +77,29 @@ def output_figure(tprs, mean_fpr, output_dir):
     plt.savefig(os.path.join(output_dir, 'roc_curve.pdf'))
 
 # Function to train and evaluate the classifier
-def prior_classifier(data, from_file=False, ord_dict=None):
+def prior_classifier(data, from_file=False):
     """Train and evaluate the classifier
     
     Args:
-        data: Either a file path (if from_file=True) or a list of [encoded_mol, label] pairs
+        data: Either a file path (if from_file=True) or a list of [smiles, label] pairs
         from_file: Boolean indicating whether data is a file path
-        ord_dict: Dictionary for decoding molecules, required if data contains encoded molecules
     """
     # Load and prepare data
     if from_file:
-        # 从文件加载数据
+        # Load data from file
         current_dir = os.path.dirname(os.path.abspath(__file__))
         data_path = os.path.abspath(os.path.join(current_dir, '..', 'data', data))
         data = classifier_data_loader(data_path)
     
-    # 解码分子序列
-    encoded_mols, labels = zip(*data)
-    smiles_list = []
-    for mol in encoded_mols:
-        if isinstance(mol, list):  # 如果是编码后的分子序列
-            if ord_dict is None:
-                raise ValueError("ord_dict is required for decoding encoded molecules")
-            smiles = decode(mol, ord_dict)  # 使用decode函数解码
-            smiles_list.append(smiles)
-        else:  # 如果已经是SMILES字符串
-            smiles_list.append(mol)
-    
-    # 计算分子描述符
+    # Calculate molecular descriptors
+    smiles_list, labels = zip(*data)
     descriptor_df = calculate_descriptors(smiles_list)
     descriptor_df['label'] = labels
     descriptor_df = descriptor_df.dropna()
     
     X = descriptor_df.drop('label', axis=1)
     y = descriptor_df['label']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     # Train model and evaluate
     clf, tprs, mean_fpr = model_training(X, y)
@@ -209,5 +196,27 @@ def batch_predict(smiles_list, model=None, threshold=0.5):
 
 # Example usage
 if __name__ == "__main__":
-    # Train classifier from file
-    prior_classifier('train_NAPro.csv', from_file=True)
+    # prior_classifier('train_NAPro.csv')
+    # Single molecule prediction
+    test_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"  # Aspirin
+    result = predict_molecule(test_smiles)
+    if result['success']:
+        print(f"Prediction: {result['prediction']}")
+        print(f"Probability: {result['probability']:.3f}")
+    else:
+        print(f"Error: {result['error']}")
+    
+    # Batch prediction
+    test_smiles_list = [
+        "CC(=O)OC1=CC=CC=C1C(=O)O",  # Aspirin
+        "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"  # Caffeine
+    ]
+    results = batch_predict(test_smiles_list)
+    for smiles, result in zip(test_smiles_list, results):
+        if result['success']:
+            print(f"\nMolecule: {smiles}")
+            print(f"Prediction: {result['prediction']}")
+            print(f"Probability: {result['probability']:.3f}")
+        else:
+            print(f"\nMolecule: {smiles}")
+            print(f"Error: {result['error']}")

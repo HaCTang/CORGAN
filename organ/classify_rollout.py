@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow.python.ops import tensor_array_ops, control_flow_ops
 import numpy as np
-from organ.prior_classifier import predict_molecule, load_model
-from organ.mol_metrics import decode
+# from organ.prior_classifier import predict_molecule, load_model
+# from organ.mol_metrics import decode
 
 class ClassifyRollout(object):
     """用于条件生成的rollout策略模型"""
@@ -21,8 +21,8 @@ class ClassifyRollout(object):
         self.start_token = tf.identity(self.lstm.start_token)
         self.learning_rate = self.lstm.learning_rate
 
-        # 加载分类器模型
-        self.classifier = load_model()
+        # # 加载分类器模型
+        # self.classifier = load_model()
 
         # 复制rollout.py中的其他初始化代码
         self.g_embeddings = tf.identity(self.lstm.g_embeddings)
@@ -84,7 +84,7 @@ class ClassifyRollout(object):
         self.gen_x = self.gen_x.stack()
         self.gen_x = tf.transpose(self.gen_x, perm=[1, 0])
 
-    def get_reward(self, sess, input_x, rollout_num, dis, D_weight=1):
+    def get_reward(self, sess, input_x, rollout_num, dis, reward_fn = None, D_weight=1):
         """计算奖励，结合判别器和分类器的输出"""
         reward_weight = 1 - D_weight
         rewards = []
@@ -98,16 +98,33 @@ class ClassifyRollout(object):
                 gind = np.array(range(len(generated_seqs)))
 
                 # 判别器奖励
-                feed = {dis.input_x: generated_seqs, dis.dropout_keep_prob: 1.0}
+                feed = {dis.input_x: generated_seqs, 
+                        dis.dropout_keep_prob: 1.0}
                 ypred_for_auc = sess.run(dis.ypred_for_auc, feed)
                 ypred = np.array([item[1] for item in ypred_for_auc]) * D_weight
 
                 # 分类器奖励
-                for j, seq in enumerate(generated_seqs):
-                    smiles = decode(seq, self.ord_dict)
-                    pred = predict_molecule(smiles, self.classifier)
-                    if pred['success']:
-                        ypred[j] += reward_weight * pred['probability']
+                if reward_fn:
+                    
+                    ypred = D_weight * ypred
+                    
+                    for k, r in reversed(already):
+                        generated_seqs = np.delete(generated_seqs, k, 0)
+                        gind = np.delete(gind, k, 0)
+                        ypred[k] += reward_weight * r
+
+                    if generated_seqs.size:
+                        rew = reward_fn(generated_seqs)
+                        
+                    # Add the just calculated rewards
+                    for k, r in zip(gind, rew):
+                        ypred[k] += reward_weight * r
+
+                    # Choose the seqs finished in the last iteration
+                    for j, k in enumerate(gind):
+                        if input_x[k][given_num] == self.pad_num and input_x[k][given_num-1] == self.pad_num:
+                            already.append((k, rew[j]))
+                    already = sorted(already, key=lambda el: el[0])
 
                 if i == 0:
                     rewards.append(ypred)
@@ -117,21 +134,20 @@ class ClassifyRollout(object):
             # 最后一个字符的奖励
             feed = {dis.input_x: input_x, dis.dropout_keep_prob: 1.0}
             ypred_for_auc = sess.run(dis.ypred_for_auc, feed)
-            ypred = np.array([item[1] for item in ypred_for_auc]) * D_weight
             
-            # 添加分类器奖励
-            for j, seq in enumerate(input_x):
-                smiles = decode(seq, self.ord_dict)
-                pred = predict_molecule(smiles, self.classifier)
-                if pred['success']:
-                    ypred[j] += reward_weight * pred['probability']
+            if reward_fn:
+                ypred = D_weight * np.array([item[1]
+                                             for item in ypred_for_auc])
+            else:
+                ypred = np.array([item[1] for item in ypred_for_auc])
 
             if i == 0:
                 rewards.append(ypred)
             else:
                 rewards[-1] += ypred
 
-        rewards = np.transpose(np.array(rewards)) / (1.0 * rollout_num)
+        rewards = np.transpose(np.array(rewards)) / \
+            (1.0 * rollout_num)
         return rewards
 
     def create_recurrent_unit(self):
