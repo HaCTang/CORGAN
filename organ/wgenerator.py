@@ -306,3 +306,22 @@ class WGenerator(object):
     def g_optimizer(self, *args, **kwargs):
         """Sets the optimizer."""
         return tf.train.AdamOptimizer(*args, **kwargs)
+
+    def copy_params(self, source_generator, sess):
+        """Copy parameters from another generator
+        
+        Args:
+            source_generator: The generator to copy parameters from
+            sess: TensorFlow session
+        """
+        # Get all trainable variables
+        source_vars = source_generator.g_params
+        target_vars = self.g_params
+        
+        # Create operations to copy variables
+        copy_ops = []
+        for source_var, target_var in zip(source_vars, target_vars):
+            copy_ops.append(target_var.assign(sess.run(source_var)))
+        
+        # Run all copy operations
+        sess.run(copy_ops)

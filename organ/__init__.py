@@ -59,9 +59,37 @@ class ORGAN(object):
         logging.set_verbosity(logging.INFO)
         rdBase.DisableLog('rdApp.error')
 
-        # Set configuration for GPU
+        # GPU configuration
+        if 'GPU' in params:
+            self.GPU = params['GPU']
+        else:
+            self.GPU = True  # Default: use GPU
+        
+        # Set GPU configuration
         self.config = tf.ConfigProto()
-        self.config.gpu_options.allow_growth = True
+        if self.GPU:
+            # Get available GPU devices
+            try:
+                from tensorflow.python.client import device_lib
+                local_devices = device_lib.list_local_devices()
+                gpus = [x for x in local_devices if x.device_type == 'GPU']
+                if gpus:
+                    if self.verbose:
+                        print(f"Using GPU: {len(gpus)} available")
+                    self.config.gpu_options.allow_growth = True  # Dynamic memory allocation
+                    self.config.gpu_options.per_process_gpu_memory_fraction = 0.9  # Use up to 90% GPU memory
+                else:
+                    if self.verbose:
+                        print("No GPU found, using CPU")
+                    self.GPU = False
+                    self.config.device_count['GPU'] = 0
+            except:
+                if self.verbose:
+                    print("Failed to get GPU info, using CPU")
+                self.GPU = False
+                self.config.device_count['GPU'] = 0
+        else:
+            self.config.device_count['GPU'] = 0  # Disable GPU
 
         # Set parameters
         self.PREFIX = name
@@ -321,8 +349,7 @@ class ORGAN(object):
                 grad_clip=self.DIS_GRAD_CLIP)
 
         # run tensorflow
-        self.sess = tf.InteractiveSession()
-        #self.sess = tf.Session(config=self.config)
+        self.sess = tf.Session(config=self.config)
 
         #self.tb_write = tf.summary.FileWriter(self.log_dir)
 
@@ -651,6 +678,7 @@ class ORGAN(object):
             saver.restore(self.sess, ckpt)
             print('Training loaded from previous checkpoint {}'.format(ckpt))
             self.SESS_LOADED = True
+            self.ORGAN_TRAINED = True
         else:
             print('\t* No training checkpoint found as {:s}.'.format(ckpt))
 
@@ -710,7 +738,7 @@ class ORGAN(object):
         self.PRETRAINED = True
         return
 
-    def generate_samples(self, num, label_input=False):
+    def generate_samples(self, num, label_input=False, target_class=None):
         """Generates molecules.
 
         Arguments
@@ -723,8 +751,6 @@ class ORGAN(object):
 
         for _ in range(int(num / self.GEN_BATCH_SIZE)):
             for class_label in range(0, self.CLASS_NUM):
-                # # 创建class_label张量
-                # class_labels = [class_label] * self.GEN_BATCH_SIZE
                 samples = self.generator.generate(self.sess)
                 # 将生成的样本和对应的标签组合
                 for i in range(self.GEN_BATCH_SIZE):
@@ -770,7 +796,7 @@ class ORGAN(object):
             self.rollout = Rollout(self.generator, 0.8, self.PAD_NUM)
 
         if self.verbose:
-            print('\nSTARTING TRAINING')
+            print('\nSTARTING ORGAN TRAINING')
             print('============================\n')
 
         results_rows = []
@@ -829,17 +855,15 @@ class ORGAN(object):
                                gen_samples, self.train_samples, self.ord_dict, results=results)
 
             for it in range(self.GEN_ITERATIONS):
-                for class_label in range(0, self.CLASS_NUM):
-                    class_labels = [class_label] * self.GEN_BATCH_SIZE
-                    samples = self.generator.generate(self.sess, class_labels, label_input=False)
-                    rewards = self.rollout.get_reward(
-                        self.sess, samples, 16, self.discriminator,
-                        batch_reward, self.LAMBDA)
-                    g_loss = self.generator.generator_step(
-                        self.sess, samples, rewards)
-                    losses['G-loss'].append(g_loss)
-                    self.generator.g_count = self.generator.g_count + 1
-                    self.report_rewards(rewards, metric)
+                samples = self.generator.generate(self.sess)
+                rewards = self.rollout.get_reward(
+                    self.sess, samples, 16, self.discriminator,
+                    batch_reward, self.LAMBDA)
+                g_loss = self.generator.generator_step(
+                    self.sess, samples, rewards)
+                losses['G-loss'].append(g_loss)
+                self.generator.g_count = self.generator.g_count + 1
+                self.report_rewards(rewards, metric)
 
             self.rollout.update_params()
 
@@ -910,20 +934,33 @@ class ORGAN(object):
         self.ORGAN_TRAINED = True
         print('\n######### FINISHED #########')
         
-    def conditional_train(self, ckpt_dir='checkpoints/'):
-        """训练条件生成器模型"""
+    def conditional_train(self, ckpt_dir='checkpoints/', gen_steps=None):
+        """Train conditional generator model
         
-        # 1. 首先确保已经通过organ_train训练过模型
+        Arguments
+        -----------
+            - ckpt_dir: Checkpoint directory
+            - gen_steps: Training steps for each generator, if None use self.TOTAL_BATCH
+        """
+        
+        # 1. First ensure model has been trained with organ_train
         if not self.ORGAN_TRAINED:
             raise ValueError('Please run organ_train first before conditional_train')
 
-        # 2. 训练分类器
+        # 2. Train classifier
         if self.CLASS_NUM > 1 and not self.PRIOR_CLASSIFIER:
-            prior_classifier(self.positive_samples)
-            print('\n分类器训练完成')
+            prior_classifier(self.positive_samples, ord_dict=self.ord_dict)
+            print('\nClassifier training completed')
             self.PRIOR_CLASSIFIER = True
+        
+        if self.verbose:
+            print('\nSTARTING CONDITIONAL TRAINING')
+            print('============================\n')
 
-        # 3. 为每个类别创建一个生成器副本
+        # Use specified steps or default value
+        total_steps = gen_steps if gen_steps is not None else self.TOTAL_BATCH
+
+        # 3. Create generator copy for each class
         generators = []
         rollouts = []
         for i in range(self.CLASS_NUM):
@@ -936,48 +973,59 @@ class ORGAN(object):
                               self.GEN_EMB_DIM, self.GEN_HIDDEN_DIM,
                               self.MAX_LENGTH, self.START_TOKEN)
             
-            # 复制训练好的生成器的参数
+            # Copy parameters from trained generator
             gen.copy_params(self.generator, self.sess)
             generators.append(gen)
-            rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM))
+            rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
 
-        # 4. 分别训练每个类别的生成器
+        # 4. Train each class generator
         for class_idx in range(self.CLASS_NUM):
-            print(f'\n训练第 {class_idx} 类生成器')
+            print(f'\nTraining generator for class {class_idx}')
             
-            for nbatch in tqdm(range(self.TOTAL_BATCH)):
-                metric = self.EDUCATION[nbatch]
+            for nbatch in tqdm(range(total_steps)):
+                metric = self.EDUCATION[nbatch % self.TOTAL_BATCH]  # Loop through training program
                 
-                # 生成样本并计算奖励
+                # Generate samples and calculate rewards
                 gen_samples = self.generate_samples(self.SAMPLE_NUM, 
                                                  label_input=True, 
                                                  target_class=class_idx)
-                rewards = rollouts[class_idx].get_reward(
-                    self.sess, 
-                    gen_samples,
-                    16, 
-                    self.discriminator,
-                    self.LAMBDA
-                )
+                # 从生成的样本中提取序列部分
+                sequences = np.array([sample[0] for sample in gen_samples])  # 只使用序列部分，不包括标签
                 
-                # 更新生成器
-                g_loss = generators[class_idx].generator_step(
-                    self.sess, gen_samples, rewards)
-                
-                # 更新rollout参数
-                rollouts[class_idx].update_params()
-                
-                # 每隔一定步数保存模型
-                if nbatch % self.EPOCH_SAVES == 0 or nbatch == self.TOTAL_BATCH - 1:
-                    model_saver = tf.train.Saver()
-                    ckpt_file = os.path.join(
-                        ckpt_dir, 
-                        f'{self.PREFIX}_class{class_idx}_{nbatch}.ckpt'
+                # 按批次处理样本
+                for batch_idx in range(0, len(sequences), self.GEN_BATCH_SIZE):
+                    batch_sequences = sequences[batch_idx:batch_idx + self.GEN_BATCH_SIZE]
+                    
+                    # 如果最后一批不足一个批次，跳过
+                    if len(batch_sequences) < self.GEN_BATCH_SIZE:
+                        continue
+                    
+                    rewards = rollouts[class_idx].get_reward(
+                        self.sess, 
+                        batch_sequences,  # 传递一个批次的序列
+                        16, 
+                        self.discriminator,
+                        self.LAMBDA
                     )
-                    path = model_saver.save(self.sess, ckpt_file)
-                    print(f'\n第 {class_idx} 类生成器模型保存在 {path}')
+                    
+                    # Update generator
+                    g_loss = generators[class_idx].generator_step(
+                        self.sess, batch_sequences, rewards)
+                    
+                    # Update rollout parameters
+                    rollouts[class_idx].update_params()
+                    
+                    # Save model periodically
+                    if nbatch % self.EPOCH_SAVES == 0 or nbatch == total_steps - 1:
+                        model_saver = tf.train.Saver()
+                        ckpt_file = os.path.join(
+                            ckpt_dir, 
+                            f'{self.PREFIX}_class{class_idx}_{nbatch}.ckpt'
+                        )
+                        path = model_saver.save(self.sess, ckpt_file)
+                        print(f'\nClass {class_idx} generator model saved at {path}')
 
-        # 5. 保存最终模型
+        # 5. Save final models
         for class_idx in range(self.CLASS_NUM):
             model_saver = tf.train.Saver()
             ckpt_file = os.path.join(
@@ -985,5 +1033,6 @@ class ORGAN(object):
                 f'{self.PREFIX}_class{class_idx}_final.ckpt'
             )
             path = model_saver.save(self.sess, ckpt_file)
-            print(f'\n第 {class_idx} 类生成器最终模型保存在 {path}')
-
+            print(f'\nClass {class_idx} generator final model saved at {path}')
+        
+        print('\n######### FINISHED #########')

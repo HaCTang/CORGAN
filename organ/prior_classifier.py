@@ -9,6 +9,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc
 import matplotlib.pyplot as plt
 import joblib
 import os
+from organ.mol_metrics import decode
 
 # Function to load data
 def classifier_data_loader(filepath):
@@ -38,7 +39,7 @@ def calculate_descriptors(smiles_list, descriptor_names:list=None):
 # Function to train the model
 def model_training(X, y):
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
-    skf = StratifiedKFold(n_splits=5)
+    skf = StratifiedKFold(n_splits=5, shuffle=True)
     auc_scores = []
     mean_fpr = np.linspace(0, 1, 100)
     tprs = []
@@ -77,12 +78,13 @@ def output_figure(tprs, mean_fpr, output_dir):
     plt.savefig(os.path.join(output_dir, 'roc_curve.pdf'))
 
 # Function to train and evaluate the classifier
-def prior_classifier(data, from_file=False):
+def prior_classifier(data, from_file=False, ord_dict=None):
     """Train and evaluate the classifier
     
     Args:
-        data: Either a file path (if from_file=True) or a list of [smiles, label] pairs
+        data: Either a file path (if from_file=True) or a list of [encoded_mol, label] pairs
         from_file: Boolean indicating whether data is a file path
+        ord_dict: Dictionary for decoding molecules, required if data contains encoded molecules
     """
     # Load and prepare data
     if from_file:
@@ -91,15 +93,26 @@ def prior_classifier(data, from_file=False):
         data_path = os.path.abspath(os.path.join(current_dir, '..', 'data', data))
         data = classifier_data_loader(data_path)
     
+    # 解码分子序列
+    encoded_mols, labels = zip(*data)
+    smiles_list = []
+    for mol in encoded_mols:
+        if isinstance(mol, list):  # 如果是编码后的分子序列
+            if ord_dict is None:
+                raise ValueError("ord_dict is required for decoding encoded molecules")
+            smiles = decode(mol, ord_dict)  # 使用decode函数解码
+            smiles_list.append(smiles)
+        else:  # 如果已经是SMILES字符串
+            smiles_list.append(mol)
+    
     # 计算分子描述符
-    smiles_list, labels = zip(*data)
     descriptor_df = calculate_descriptors(smiles_list)
     descriptor_df['label'] = labels
     descriptor_df = descriptor_df.dropna()
     
     X = descriptor_df.drop('label', axis=1)
     y = descriptor_df['label']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=True)
     
     # Train model and evaluate
     clf, tprs, mean_fpr = model_training(X, y)

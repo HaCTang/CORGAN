@@ -7,11 +7,12 @@ from organ.mol_metrics import decode
 class ClassifyRollout(object):
     """用于条件生成的rollout策略模型"""
 
-    def __init__(self, lstm, update_rate, pad_num):
+    def __init__(self, lstm, update_rate, pad_num, ord_dict):
         """初始化参数并定义模型架构"""
         self.lstm = lstm
         self.update_rate = update_rate
         self.pad_num = pad_num
+        self.ord_dict = ord_dict
         self.num_emb = self.lstm.num_emb
         self.batch_size = self.lstm.batch_size
         self.emb_dim = self.lstm.emb_dim

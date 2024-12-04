@@ -10,8 +10,9 @@ model.load_metrics()
 model.organ_train(ckpt_dir='ckpt')
 # 调用训练好的模型
 # model.generate(100, label_input=False)
-# # 使用条件训练
-# model.conditional_train(ckpt_dir='ckpt')
+# 使用条件训练
+model.conditional_train(ckpt_dir='ckpt', gen_steps=10)
 
-# # 生成特定类别的分子
-# molecules = model.generate_samples(100, label_input=True, target_class=0)  # 生成第0类分子
+# 生成特定类别的分子
+molecules = model.generate_samples(100, label_input=True, target_class=1)  # 生成第0类分子
+print(molecules)
