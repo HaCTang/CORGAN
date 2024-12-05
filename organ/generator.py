@@ -315,34 +315,34 @@ class Generator(object):
         sess.run(copy_ops)
 
     def deepcopy(self, sess=None):
-        """创建生成器的深度复制
+        """Create a deep copy of the generator
         
         Args:
-            sess: TensorFlow session用于获取tensor值
+            sess: TensorFlow session to get tensor values
         
         Returns:
-            Generator: 一个新的生成器实例，具有相同的参数配置
+            Generator: A new generator instance with the same parameter configuration
         """
         if sess is None:
-            # 如果没有提供session，尝试获取默认session
+            # If no session is provided, try to get the default session
             sess = tf.get_default_session()
             if sess is None:
                 raise ValueError("No TensorFlow session provided or found")
             
-        # 创建一个新的生成器实例，使用相同的参数
+        # Create a new generator instance with the same parameters
         new_generator = Generator(
             self.num_emb,
             self.batch_size,
             self.emb_dim,
             self.hidden_dim,
             self.sequence_length,
-            sess.run(self.start_token)[0], # 获取start_token的值
-            learning_rate=sess.run(self.learning_rate), # 获取learning_rate的值
+            sess.run(self.start_token)[0], # Get start_token value
+            learning_rate=sess.run(self.learning_rate), # Get learning_rate value
             reward_gamma=self.reward_gamma,
             grad_clip=self.grad_clip
         )
         
-        # 添加变量初始化
+        # Add variable initialization
         uninit_vars = []
         for var in tf.global_variables():
             try:

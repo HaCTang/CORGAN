@@ -619,52 +619,7 @@ class ORGAN(object):
     def load_prev_training(self, ckpt=None):
         """
         Loads a previous trained model.
-
-        Arguments
-        -----------
-
-            - ckpt. String pointing to the ckpt file. By default,
-            'checkpoints/name/pretrain_ckpt' is assumed.
-
-        Note 1
-        -----------
-
-            The models are stored by the Tensorflow API backend. This
-            will generate various files. An example ls:
-
-                checkpoint
-                validity_model_0.ckpt.data-00000-of-00001
-                validity_model_0.ckpt.index
-                validity_model_0.ckpt.meta
-                validity_model_100.ckpt.data-00000-of-00001
-                validity_model_100.ckpt.index
-                validity_model_100.ckpt.meta
-                validity_model_120.ckpt.data-00000-of-00001
-                validity_model_120.ckpt.index
-                validity_model_120.ckpt.meta
-                validity_model_140.ckpt.data-00000-of-00001
-                validity_model_140.ckpt.index
-                validity_model_140.ckpt.meta
-
-                    ...
-
-                validity_model_final.ckpt.data-00000-of-00001
-                validity_model_final.ckpt.index
-                validity_model_final.ckpt.meta
-
-            Possible ckpt values are 'validity_model_0', 'validity_model_140'
-            or 'validity_model_final'.
-
-        Note 2
-        -----------
-
-            Due to its structure, ORGANIC is very dependent on its
-            hyperparameters (for example, MAX_LENGTH defines the
-            embedding). Most of the errors with this function are
-            related to parameter mismatching.
-
         """
-
         # If there is no Rollout, add it
         if not hasattr(self, 'rollout'):
             self.rollout = Rollout(self.generator, 0.8, self.PAD_NUM)
@@ -683,6 +638,17 @@ class ORGAN(object):
         if os.path.isfile(ckpt + '.meta'):
             saver.restore(self.sess, ckpt)
             print('Training loaded from previous checkpoint {}'.format(ckpt))
+            
+            # 如果是条件生成器的checkpoint,需要初始化class_generators
+            if 'class' in ckpt:
+                self.class_generators = []
+                self.class_rollouts = []
+                for i in range(self.CLASS_NUM):
+                    gen = self.generator.deepcopy(self.sess)
+                    gen.copy_params(self.generator, self.sess) 
+                    self.class_generators.append(gen)
+                    self.class_rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
+                
             self.SESS_LOADED = True
             self.ORGAN_TRAINED = True
         else:
@@ -1120,3 +1086,25 @@ class ORGAN(object):
             print(f'\nClass {class_idx} generator final model saved at {path}')
         
         print('\n######### FINISHED #########')
+
+    def output_samples(self, num_samples, output_dir='epoch_data/', 
+                       label_input=False, target_class=None, class_generator=None):
+        """
+        Output generated samples to a csv file
+        """
+        generated_samples = self.generate_samples(num_samples, 
+                                                   label_input=label_input,
+                                                   target_class=target_class,
+                                                   class_generator=class_generator)
+        decoded = [mm.decode(sample[0], self.ord_dict) for sample in generated_samples]
+        # 输出结果只保存合法的分子式
+        verified_decoded = [s for s in decoded if mm.verify_sequence(s)]
+        df = pd.DataFrame(verified_decoded, columns=['SMILES'])
+        df['class'] = target_class
+        df.to_csv(f'{output_dir}/{self.PREFIX}_samples.csv', index=False)
+        print(f'Generated samples saved to {output_dir}/{self.PREFIX}_samples.csv')
+        
+        # df = pd.DataFrame(verified_decoded, columns=['SMILES'])
+        # df['class'] = [sample[1] for sample in generated_samples]
+        # df.to_csv(f'{output_dir}/{self.PREFIX}_samples.csv', index=Fale)
+        # print(f'Generated samples saved to {output_dir}/{self.PREFIX}_samples.csv')

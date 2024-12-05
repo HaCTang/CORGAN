@@ -8,15 +8,16 @@ model = ORGAN('cond_test', 'mol_metrics', params={
     'MAX_LENGTH': 100
 })
 
-# 加载训练数据和设置训练程序
 model.load_training_set('./data/train_NAPro.csv')
-model.set_training_program(['druglikeliness'], [5])
+model.set_training_program(['druglikeliness'], [10])
 model.load_metrics()
 
 # model.organ_train(ckpt_dir='ckpt')
-# 使用条件训练
-model.load_prev_training(ckpt='./checkpoints/cond_test/cond_test_4.ckpt')
-model.conditional_train(ckpt_dir='ckpt', gen_steps=2)
+# model.load_prev_training(ckpt='./checkpoints/cond_test/cond_test_2.ckpt')
+# model.conditional_train(ckpt_dir='ckpt', gen_steps=4)
 
-# 生成特定类别的分子
-molecules = model.generate_samples(100, label_input=True, target_class=0)  # 生成第0类分子
+model.load_prev_training(ckpt='ckpt/cond_test_class0_final.ckpt')
+
+# 然后生成样本
+model.output_samples(1000, label_input=True, target_class=0, 
+                     class_generator=model.class_generators[0])
