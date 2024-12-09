@@ -101,7 +101,7 @@ class ClassifyRollout(object):
                 feed = {dis.input_x: generated_seqs, 
                         dis.dropout_keep_prob: 1.0}
                 ypred_for_auc = sess.run(dis.ypred_for_auc, feed)
-                ypred = np.array([item[1] for item in ypred_for_auc]) * D_weight
+                ypred = np.array([item[1] for item in ypred_for_auc])
 
                 # 分类器奖励
                 if reward_fn:
