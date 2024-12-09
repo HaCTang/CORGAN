@@ -1,0 +1,1382 @@
+Tensor("add:0", shape=(10, 3), dtype=float32)
+Tensor("Highway/add_7:0", shape=(10, 5), dtype=float32)
+mol_metrics: reading NP model ...
+loaded in 0.09870147705078125
+mol_metrics: reading SA model ...
+loaded in 0.38312625885009766
+Vocabulary:
+['^', 'H', 'B', 'c', 'C', 'n', 'N', 'o', 'O', 'p', 'P', 's', 'S', 'F', 'Q', 'W', 'I', '[', ']', '+', 'u', 'y', '~', '!', '&', 'Z', 'X', '-', '=', '#', '(', ')', '1', '2', '3', '4', '5', '6', '7', '@', '/', '\\', '.', '_']
+
+PARAMETERS INFORMATION
+============================
+
+Model name               :   cond_test
+Training set size        :   12185 points
+Max data length          :   100
+Avg Length to use is     :   46.35 (16.07) [11,86]
+Num valid data points is :   12185
+Num different samples is :   Counter({1: 7569, 0: 4616})
+Size of alphabet is      :   44
+
+PRETRAIN_GEN_EPOCHS      :   250
+PRETRAIN_DIS_EPOCHS      :   1
+GEN_ITERATIONS           :   2
+GEN_BATCH_SIZE           :   64
+SEED                     :   None
+DIS_BATCH_SIZE           :   64
+DIS_EPOCHS               :   3
+EPOCH_SAVES              :   20
+CHK_PATH                 :   /ihome/jwang/hat170/CORGAN/CORGAN/checkpoints/cond_test
+GEN_EMB_DIM              :   32
+GEN_HIDDEN_DIM           :   32
+START_TOKEN              :   0
+SAMPLE_NUM               :   6400
+BIG_SAMPLE_NUM           :   32000
+LAMBDA                   :   0.5
+MAX_LENGTH               :   100
+DIS_EMB_DIM              :   64
+DIS_FILTER_SIZES         :   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+DIS_NUM_FILTERS          :   [100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160]
+DIS_DROPOUT              :   0.75
+DIS_L2REG                :   0.2
+
+PRETRAINING
+============================
+
+GENERATOR PRETRAINING
+
+DISCRIMINATOR PRETRAINING
+Pretrain saved at ckpt/cond_test_pretrain_ckpt
+
+STARTING ORGAN TRAINING
+============================
+
+
+Batch n. 0
+============================
+
+
+GENERATOR TRAINING
+============================
+
+1
+~~~ Summary Results ~~~
+Total samples   :  64000
+Unique          :  62761 (98.06%)
+Unverified      :  48236 (75.37%)
+Verified        :  15764 (24.63%)
+
+Example of good samples:
+C[C@H]1O[C@@H](C(Cl)(F)F)CCC1=C
+COC(=O)C(C)C(=O)OCCO
+COc1ccccc1N1CCC(=O)NC1=O
+CC[C@H](NC(=O)Cc1ccccc1)C(=O)O
+CC(C)S(=O)(=O)c1ccc(CN(C)CC(=O)O)cc1
+COc1cn(Cc2cnn(-c2ccnc(F)c2)n2)cc1
+Cc1ccc(F)c(CC(c2ccccc2)nc2ccccc12)CNCCN
+Cl1[C@@H](c2ccccc2Br)cc1
+Nc1nc(-c2ccc(-c3cccc(Cl)c3)c(F)c2)ncn1
+CC(CCC(=O)O)CCCC(=O)O
+
+Example of bad samples:
+CCCCCCCCCCCCc1cc(C#CC2CN2c3ccccc4cc2)cn1CC=C(C#C)C(=O)NC(=O)C(F)(F)F
+COC(=O)[C@H](CCC(CSSC)c1ncnc2c1cnc(=O)oc1C
+Clc1nc2c(CCCCC(=O)O)c(C(F)(F)F)cn2)c2c1c(n2C1CCCc2c(=O)cccc12
+C[C@H](Nc1ncn2cc3cc(O)cc3c(=O)c1C(=O)O
+N/C(=C/CCc1ccccc1
+COc1ccc(CN2CC(OC(C)=O)C(C)=O)C1
+CCCCCCCCOC(=O)C(=O)c1c(O)cc(=O)n2c1C1=Oc1ccc(Cl)cc1Cl
+CCOC(=O)c1ccc2ncccc21)c1ccc2nn[nH]c2c1
+CCc1cc(S(=O)(=O)NC(=O)[C@@H](N)C(c1ccnc2)ccc2c1C[C@@H](O)[C@H]1[C@@H]2C[C@@]2(S)C2=O
+C[C@H]1Cc2ccc(Cl)cc2N1CC(c2ccc(O)cc2)CC1
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.003 (0.007) [0.000009,0.050]
+Valid: 0.025 (0.014) [0.010003,0.050]
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.004 (0.012) [0.000008,0.072]
+Valid: 0.044 (0.023) [0.010136,0.072]
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Model saved at /ihome/jwang/hat170/CORGAN/CORGAN/checkpoints/cond_test/cond_test_0.ckpt
+
+Batch n. 1
+============================
+
+
+GENERATOR TRAINING
+============================
+
+1
+~~~ Summary Results ~~~
+Total samples   :  12800
+Unique          :  12505 (97.70%)
+Unverified      :   8550 (66.80%)
+Verified        :   4250 (33.20%)
+
+Example of good samples:
+N#Cc1ccccc1
+Nc1ccco1
+CCCCCCCCCCCNCCCCCCc1c(C)c(Cl)cc(C)c1
+CCCCCCCCCCCCCNCCC(=O)O
+CC(C)(C)N[C@@H](Cc1ccccc1)OCC
+CC(=O)N1CCCCC1=O
+Cc1ccccc1S(=O)(=O)OCCCCCCC(=O)NC(=O)O
+CN(C)C(=O)O
+COc1ccc2c(n1)-c1ccccc1C2
+C(C)COc1ccccc1
+
+Example of bad samples:
+CCCS(=O)(OC)OP(=O)Oc1ccc(-c2cc([C@@H]4OC(=O)N(C(=N)C)C3)n2)cc1
+Cn1cc(CCc2cc(C)c(CCC(C)C)c2)cc1
+C[C@@H](C(F)(F)F)CC13CCCC1=O
+COc1cc[nH]c2cc(OC)c(Oc3ccc(F)c3cc2)c1
+NCCC1=C(C)C)CCC[C@@]1(C)[C@H](C[C@@H](O)C[C@@H]2O)c(=/C(=O)O)c1
+COc1cc(-c2cc(F)cc(OC)c2)cc1NCC(C)(O)CC(F)(F)F
+C[C@]12CNc4cnc(C)cc5[nH]1N1C=O2
+CCCCC(=O)OS(O)=OC(=O)N1CC2CCOCC2(C)C
+Cc1cc(C(F)(F)F)ccc1C(=O)c1c(O)c(O)c(S(=O)(=O)N3C[C@@H](O)CC[C@]1(F)C(=O)CC1
+Cc1cccc2cc3ccccc3c21
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.251 (0.002) [0.245123,0.256]
+Valid: 0.251 (0.002) [0.245123,0.256]
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.251 (0.002) [0.244474,0.255]
+Valid: 0.251 (0.002) [0.244474,0.255]
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Batch n. 2
+============================
+
+
+GENERATOR TRAINING
+============================
+
+1
+~~~ Summary Results ~~~
+Total samples   :  12800
+Unique          :  12293 (96.04%)
+Unverified      :   7908 (61.78%)
+Verified        :   4892 (38.22%)
+
+Example of good samples:
+N[C@H]1OC(O)[C@@H](c2ccc(F)cc2)cc1
+CCCCCCCCCO
+COCCOC(C)(C)CCCCCCCCCCCC(=O)O
+CC(C)(C)C(=O)NCC(=O)O
+CN1[C@@H](C(=O)O)[C@H](O)CC1
+CCCCCCNC(=O)CCOc1ccccc1
+CCCCCCCOCCNCC
+Cc1ccc(Br)c(C)c1O[C@H](C)c1ccccc1
+CCOC(=O)c1ccccn1
+CCc1ccc(C)nc1C
+
+Example of bad samples:
+CCCCCCCCCCOC(=O)N[C@H](C(F)(F)F)OC1c2ccccc2nn2c2c1NC(=O)C(N)=O
+CN1CCC(C(C)C)N[C@H]1CCCN1CCN(C)C
+CCCC[C@H](N)CCCOc1ccc(O)n1
+CCC(C)NC(=O)Nc1nc(N)oc1=O
+CCc1cccc(S(O)=O)c(=O)NCCCCCCN
+N=C1CC[C@]12CC[C@@H]1CCCCCC
+Cc1ccc2c(CC(=O)N)N1CCN(C)CCCCC(=O)O
+N[C@@H](CC2CCCCCCCC1
+N=C(N)Nc1ccc(O)c(COP22=O
+Cc1nc(O)cn1)/C=C/CC/C=N\C(=O)O
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Batch n. 3
+============================
+
+
+GENERATOR TRAINING
+============================
+
+1
+~~~ Summary Results ~~~
+Total samples   :  12800
+Unique          :  12238 (95.61%)
+Unverified      :   7732 (60.41%)
+Verified        :   5068 (39.59%)
+
+Example of good samples:
+CCCCC(O)COCCO
+CC[C@H](O)[C@H]1O[C@@H](O)[C@H](C)O1
+COc1ccc(Sc2ccc(Cl)cc2)N1
+Cc1nsc(S(=O)(=O)CNCCN)c1
+NCc1cc(C)ccc1C
+CO/C=C/CS(=O)(=O)c1c(F)cc(O)cc1O
+CN1CCN(c2ccccc2OC(CCN)C)c(=O)[nH]1
+CCc1ccc2c(c1)CCN2
+CCCCCCC[C@@H](C)C(=O)O
+CCCCCCCCCCCC(C)=C(C)C
+
+Example of bad samples:
+N=Cc1cccc(NC(=O)CC/CC(=O)N(CCCNc3ccc(Cl)ccc2Cl)cc2)c1O
+CO/C(=Oc1cccc(O)c1
+CCCCC/C=C\C/C=C\C/C=C\CCc1nc(N)c2c1c1c(O)cc(O)c1O
+COc1cooc1O2
+Cc1cc2c(cc1Cl)cn1
+CCN(CC)CCCC1(c2c(F)cccc2)nn2C1=CCC1)C(=O)C
+N/C(=C/c1ccc(NS(c1cc2ccccc2)c(Oc2ccncc2)nc1
+COc1cn(C)c(=O)c1ccc(Br)cc12
+CC/C=C\C/C=C\C/C=C/C=C1\CN2CCOCC1
+COC(=O)/C=C/C1/C=N/C=C2\NC(=N)N1)NCC/C=C/c1ccc(NS(C)(=O)=O)cc1
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Batch n. 4
+============================
+
+
+GENERATOR TRAINING
+============================
+
+1
+~~~ Summary Results ~~~
+Total samples   :  12800
+Unique          :  12281 (95.95%)
+Unverified      :   7588 (59.28%)
+Verified        :   5212 (40.72%)
+
+Example of good samples:
+CCCC(=O)O
+C#CCC(C)CC(O)CCNCCCCCCCCCCO
+CC(C)=CCC(C)N(C)CC(N)=O
+Cc1cccnc1N
+CN(CC(C)C)C(=O)NCCNC(=O)NC[C@@H](O)C[P@@](=O)(=O)N
+CC(=O)Oc1ccccc1
+COc1cc(C)c(C#N)cc1
+NNCc1ccc(N)cc1
+N#C/C(C)=C/c1ccccc1
+O=c1ccc(OC)ccc1F
+
+Example of bad samples:
+Cc1ccccc1S(=O)(=O)Oc1ccc(C#O)cc1S(=O)(O)OCO
+Cc1nnc(N2C[C@@H]2CC(=O)[C@@H](Cc3cccsc42)n2)c1
+CCCCCCCCCCCCCCCOC(=O)N1CC(OC(=O)C)c1cccc(Cl)\c1=O
+CCCCCCCCCC(=O)NC[C@H]1O[C@H](O)CCC
+C#CCn1nc(F)c(C(N)=O)cc1
+O[C@@H]1[C@H](O)[C@@H](OC)OC[C@H]2O
+COc1cc2nnc(O)cc2O)CC2
+OCn1ccc(C)nc1Nc1ccc(O)c(O)c1
+CO[C@H]1CCCN1CCCCCCC1(=O)O)C2
+OCCOc1c(I)nc(-c2cccc(C@C1(c1)[nH]cc1
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reward: diversity  (lambda=0.50)
+Stats: 0.250 (0.000) [0.250000,0.250]
+Valid: 0.250 (0.000) [0.250000,0.250]
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Model saved at /ihome/jwang/hat170/CORGAN/CORGAN/checkpoints/cond_test/cond_test_4.ckpt
+
+######### FINISHED #########
+
+Classifier training completed
+
+STARTING CONDITIONAL TRAINING
+============================
+
+
+Training generator for class 0
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.376
+Classify accuracy: 0.000
+Average reward: 0.041
+Max reward: 0.473
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 0 generator model saved at ckpt/cond_test_class0_0.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.312
+Classify accuracy: 0.000
+Average reward: 0.019
+Max reward: 0.445
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.294
+Classify accuracy: 0.000
+Average reward: 0.021
+Max reward: 0.448
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 0 generator model saved at ckpt/cond_test_class0_20.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.307
+Classify accuracy: 0.000
+Average reward: 0.029
+Max reward: 0.473
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.228
+Classify accuracy: 0.000
+Average reward: 0.025
+Max reward: 0.486
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 0 generator model saved at ckpt/cond_test_class0_40.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 0 generator model saved at ckpt/cond_test_class0_49.ckpt
+
+Training generator for class 1
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.378
+Classify accuracy: 0.307
+Average reward: 0.269
+Max reward: 0.945
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 1 generator model saved at ckpt/cond_test_class1_0.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.275
+Classify accuracy: 0.221
+Average reward: 0.198
+Max reward: 0.953
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.311
+Classify accuracy: 0.213
+Average reward: 0.182
+Max reward: 0.879
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 1 generator model saved at ckpt/cond_test_class1_20.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.431
+Classify accuracy: 0.211
+Average reward: 0.168
+Max reward: 0.759
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Classify results:
+------------------------
+Valid molecule ratio: 0.544
+Classify accuracy: 0.178
+Average reward: 0.133
+Max reward: 0.617
+Min reward: 0.000
+------------------------
+
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 1 generator model saved at ckpt/cond_test_class1_40.ckpt
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+DISCRIMINATOR TRAINING
+============================
+
+Discriminator epoch 1...
+Discriminator epoch 2...
+Discriminator epoch 3...
+
+Discriminator trained.
+
+Class 1 generator model saved at ckpt/cond_test_class1_49.ckpt
+
+Class 0 generator final model saved at ckpt/cond_test_class0_final.ckpt
+
+Class 1 generator final model saved at ckpt/cond_test_class1_final.ckpt
+
+######### FINISHED #########
+Generated samples saved to epoch_data//cond_test_samples.csv

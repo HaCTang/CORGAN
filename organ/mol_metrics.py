@@ -531,46 +531,55 @@ def print_results(verified_samples, unverified_samples, metrics=[], results={}):
 
 
 def batch_diversity(smiles, set_smiles):
-    rand_smiles = random.sample(set_smiles, 100)
-    rand_mols = [Chem.MolFromSmiles(s) for s in rand_smiles]
-    fps = [Chem.GetMorganFingerprintAsBitVect(
-        m, 4, nBits=2048) for m in rand_mols]
-    vals = [diversity(s, fps) if verify_sequence(s)
-            else 0.0 for s in smiles]
-    return vals
 
+    sample_size = min(100, len(set_smiles))
+    rand_smiles = random.sample(set_smiles, sample_size)
+    
+    rand_mols = [Chem.MolFromSmiles(s) for s in rand_smiles]
+    valid_mols = [m for m in rand_mols if m is not None]
+    
+    if not valid_mols:
+        return [0.0] * len(smiles)
+        
+    fps = [Chem.GetMorganFingerprintAsBitVect(m, 4, nBits=2048) for m in valid_mols]
+    vals = [diversity(s, fps) if verify_sequence(s) else 0.0 for s in smiles]
+    return vals
 
 def batch_mixed_diversity(smiles, set_smiles):
-    # set smiles
-    rand_smiles = random.sample(set_smiles, 100)
+
+    sample_size_ref = min(100, len(set_smiles))
+    rand_smiles = random.sample(set_smiles, sample_size_ref)
     rand_mols = [Chem.MolFromSmiles(s) for s in rand_smiles]
-    fps = [Chem.GetMorganFingerprintAsBitVect(
-        m, 4, nBits=2048) for m in rand_mols]
-    # gen smiles
-    rand_gen_smiles = random.sample(smiles, 500)
-
+    valid_rand_mols = [m for m in rand_mols if m is not None]
+    
+    sample_size_gen = min(500, len(smiles))
+    rand_gen_smiles = random.sample(smiles, sample_size_gen)
     gen_mols = [Chem.MolFromSmiles(s) for s in smiles]
-    fps = [Chem.GetMorganFingerprintAsBitVect(
-        m, 4, nBits=2048) for m in gen_mols]
-
-    vals = [diversity(s, fps) + diversity(s, fps) if verify_sequence(s)
+    valid_gen_mols = [m for m in gen_mols if m is not None]
+    
+    if not valid_rand_mols or not valid_gen_mols:
+        return [0.0] * len(smiles)
+    
+    fps_ref = [Chem.GetMorganFingerprintAsBitVect(m, 4, nBits=2048) for m in valid_rand_mols]
+    fps_gen = [Chem.GetMorganFingerprintAsBitVect(m, 4, nBits=2048) for m in valid_gen_mols]
+    
+    vals = [diversity(s, fps_ref) + diversity(s, fps_gen) if verify_sequence(s)
             else 0.0 for s in smiles]
-
     return vals
 
-
 def diversity(smile, fps):
-    val = 0.0
-    low_rand_dst = 0.9
-    mean_div_dst = 0.945
-    ref_mol = Chem.MolFromSmiles(smile)
-    ref_fps = Chem.GetMorganFingerprintAsBitVect(ref_mol, 4, nBits=2048)
-    dist = DataStructs.BulkTanimotoSimilarity(
-        ref_fps, fps, returnDistance=True)
-    mean_dist = np.mean(np.array(dist))
-    val = remap(mean_dist, low_rand_dst, mean_div_dst)
-    val = np.clip(val, 0.0, 1.0)
-    return val
+    try:
+        ref_mol = Chem.MolFromSmiles(smile)
+        if ref_mol is None:
+            return 0.0
+            
+        ref_fps = Chem.GetMorganFingerprintAsBitVect(ref_mol, 4, nBits=2048)
+        dist = DataStructs.BulkTanimotoSimilarity(ref_fps, fps, returnDistance=True)
+        mean_dist = np.mean(np.array(dist))
+        val = remap(mean_dist, low_rand_dst, mean_div_dst)
+        return np.clip(val, 0.0, 1.0)
+    except:
+        return 0.0
 
 #==============
 

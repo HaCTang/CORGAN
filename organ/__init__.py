@@ -53,43 +53,43 @@ class ORGAN(object):
 
         self.verbose = verbose
 
-        # Set minimum verbosity for RDKit, Keras and TF backends
-        os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-        logging.set_verbosity(logging.INFO)
-        rdBase.DisableLog('rdApp.error')
+        # # Set minimum verbosity for RDKit, Keras and TF backends
+        # os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
+        # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        # logging.set_verbosity(logging.INFO)
+        # rdBase.DisableLog('rdApp.error')
 
-        # GPU configuration
-        if 'GPU' in params:
-            self.GPU = params['GPU']
-        else:
-            self.GPU = True  # Default: use GPU
+        # # GPU configuration
+        # if 'GPU' in params:
+        #     self.GPU = params['GPU']
+        # else:
+        #     self.GPU = True  # Default: use GPU
         
-        # Set GPU configuration
-        self.config = tf.ConfigProto()
-        if self.GPU:
-            # Get available GPU devices
-            try:
-                from tensorflow.python.client import device_lib
-                local_devices = device_lib.list_local_devices()
-                gpus = [x for x in local_devices if x.device_type == 'GPU']
-                if gpus:
-                    if self.verbose:
-                        print(f"Using GPU: {len(gpus)} available")
-                    self.config.gpu_options.allow_growth = True  # Dynamic memory allocation
-                    self.config.gpu_options.per_process_gpu_memory_fraction = 0.9  # Use up to 90% GPU memory
-                else:
-                    if self.verbose:
-                        print("No GPU found, using CPU")
-                    self.GPU = False
-                    self.config.device_count['GPU'] = 0
-            except:
-                if self.verbose:
-                    print("Failed to get GPU info, using CPU")
-                self.GPU = False
-                self.config.device_count['GPU'] = 0
-        else:
-            self.config.device_count['GPU'] = 0  # Disable GPU
+        # # Set GPU configuration
+        # self.config = tf.ConfigProto()
+        # if self.GPU:
+        #     # Get available GPU devices
+        #     try:
+        #         from tensorflow.python.client import device_lib
+        #         local_devices = device_lib.list_local_devices()
+        #         gpus = [x for x in local_devices if x.device_type == 'GPU']
+        #         if gpus:
+        #             if self.verbose:
+        #                 print(f"Using GPU: {len(gpus)} available")
+        #             self.config.gpu_options.allow_growth = True  # Dynamic memory allocation
+        #             self.config.gpu_options.per_process_gpu_memory_fraction = 0.9  # Use up to 90% GPU memory
+        #         else:
+        #             if self.verbose:
+        #                 print("No GPU found, using CPU")
+        #             self.GPU = False
+        #             self.config.device_count['GPU'] = 0
+        #     except:
+        #         if self.verbose:
+        #             print("Failed to get GPU info, using CPU")
+        #         self.GPU = False
+        #         self.config.device_count['GPU'] = 0
+        # else:
+        #     self.config.device_count['GPU'] = 0  # Disable GPU
 
         # Set parameters
         self.PREFIX = name
@@ -355,7 +355,8 @@ class ORGAN(object):
                 grad_clip=self.DIS_GRAD_CLIP)
 
         # run tensorflow
-        self.sess = tf.Session(config=self.config)
+        # self.sess = tf.Session(config=self.config)
+        self.sess = tf.Session()
 
         #self.tb_write = tf.summary.FileWriter(self.log_dir)
 
@@ -1064,6 +1065,41 @@ class ORGAN(object):
                 
                 # Update rollout parameters
                 self.class_rollouts[class_idx].update_params()
+
+                if self.LAMBDA_C != 0:
+                    print('\nDISCRIMINATOR TRAINING')
+                    print('============================\n')
+                    for i in range(self.DIS_EPOCHS):
+                        print('Discriminator epoch {}...'.format(i + 1))
+                        negative_samples = self.generate_samples(self.POSITIVE_NUM,
+                                                                 label_input=True,
+                                                                 target_class=class_idx,
+                                                                 class_generator=self.class_generators[class_idx])
+                        dis_x_train, dis_y_train = self.dis_loader.load_train_data(
+                            self.positive_samples, negative_samples)
+                        dis_batches = self.dis_loader.batch_iter(
+                            zip(dis_x_train, dis_y_train),
+                            self.DIS_BATCH_SIZE, self.DIS_EPOCHS
+                        )
+
+                        d_losses, ce_losses, l2_losses, w_loss = [], [], [], []
+                        for batch in dis_batches:
+                            x_batch, y_batch = zip(*batch)
+                            x_data, x_label = zip(*x_batch)
+                            _, d_loss, ce_loss, l2_loss, w_loss = self.discriminator.train(
+                                self.sess, x_data, y_batch, self.DIS_DROPOUT)
+                            d_losses.append(d_loss)
+                            ce_losses.append(ce_loss)
+                            l2_losses.append(l2_loss)
+
+                        losses['D-loss'].append(np.mean(d_losses))
+                        losses['CE-loss'].append(np.mean(ce_losses))
+                        losses['L2-loss'].append(np.mean(l2_losses))
+                        losses['WGAN-loss'].append(np.mean(l2_losses))
+
+                        self.discriminator.d_count = self.discriminator.d_count + 1
+
+                    print('\nDiscriminator trained.')
                     
                 # Save model periodically
                 if nbatch % self.EPOCH_SAVES == 0 or nbatch == total_steps - 1:
@@ -1097,7 +1133,7 @@ class ORGAN(object):
                                                    target_class=target_class,
                                                    class_generator=class_generator)
         decoded = [mm.decode(sample[0], self.ord_dict) for sample in generated_samples]
-        # 输出结果只保存合法的分子式
+        # Only save valid molecules
         verified_decoded = [s for s in decoded if mm.verify_sequence(s)]
         df = pd.DataFrame(verified_decoded, columns=['SMILES'])
         df['class'] = target_class
