@@ -3,6 +3,10 @@ epoch_data/
 ckpt/
 checkpoints/
 eval_classifier/
+# data/
 *.npy
 *.csv
 *.pth
+*.smi
+
+!data/train_NAPro.csv

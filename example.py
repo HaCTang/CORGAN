@@ -7,7 +7,7 @@ model.load_training_set('./data/qm9_5k.csv')
 model.set_training_program(['druglikeliness'], [100])
 model.load_metrics()
 # model.load_prev_training(ckpt='./ckpt/test_pretrain_ckpt')
-model.organ_train(ckpt_dir='ckpt')
+# model.organ_train(ckpt_dir='ckpt')
 # 调用训练好的模型
 # model.generate(100, label_input=False)
 # 使用条件训练

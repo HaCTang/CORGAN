@@ -648,7 +648,7 @@ class ORGAN(object):
                     gen = self.generator.deepcopy(self.sess)
                     gen.copy_params(self.generator, self.sess) 
                     self.class_generators.append(gen)
-                    self.class_rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
+                    self.class_rollouts.append(ClassifyRollout(gen, 0.3, self.PAD_NUM, self.ord_dict))
                 
             self.SESS_LOADED = True
             self.ORGAN_TRAINED = True
@@ -770,7 +770,7 @@ class ORGAN(object):
                 print('Pretrain saved at {}'.format(path))
 
         if not hasattr(self, 'rollout'):
-            self.rollout = Rollout(self.generator, 0.8, self.PAD_NUM)
+            self.rollout = Rollout(self.generator, 0.3, self.PAD_NUM)
 
         if self.verbose:
             print('\nSTARTING ORGAN TRAINING')
@@ -921,30 +921,10 @@ class ORGAN(object):
         
         Returns:
             rewards: reward values array
-        """
-        from organ.prior_classifier import predict_molecule, batch_predict
-        
+        """       
         # Decode sequences as SMILES strings
-        decoded = [mm.decode(sample, self.ord_dict) for sample in samples]
-        
-        # Use classifier to batch predict
-        predictions = batch_predict(decoded, model=model_classifier)
-        
-        # Calculate rewards
-        rewards = []
-        for pred, target_class in zip(predictions, class_labels):
-            if pred['success']:
-                # Get the prediction probability for the target class
-                # If the predicted class matches the target class, reward is the prediction probability
-                # Otherwise, reward is 1 - prediction probability
-                if pred['prediction'] == target_class:
-                    rewards.append(pred['probability'])
-                else:
-                    rewards.append(1 - pred['probability'])
-            else:
-                # If prediction fails, give the lowest reward
-                rewards.append(0.0)
-                
+        decoded = [mm.decode(sample, self.ord_dict) for sample in samples]       
+        rewards = mm.batch_classifier(decoded, self.train_samples, class_labels)                
         pct_unique = len(list(set(decoded))) / float(len(decoded))
         weights = np.array([pct_unique / float(decoded.count(sample)) for sample in decoded])
         rewards = np.array(rewards) * weights
@@ -987,9 +967,22 @@ class ORGAN(object):
             - gen_steps: Training steps for each generator, if None use self.TOTAL_BATCH
         """
         
-        # 1. First ensure model has been trained with organ_train
-        if not self.ORGAN_TRAINED:
-            raise ValueError('Please run organ_train first before conditional_train')
+        # # 1. First ensure model has been trained with organ_train
+        # if not self.ORGAN_TRAINED:
+        #     raise ValueError('Please run organ_train first before conditional_train')
+        if not self.PRETRAINED and not self.SESS_LOADED:
+
+            self.sess.run(tf.global_variables_initializer())
+            self.pretrain()
+
+            if not os.path.exists(ckpt_dir):
+                os.makedirs(ckpt_dir)
+            ckpt_file = os.path.join(ckpt_dir,
+                                     '{}_pretrain_ckpt'.format(self.PREFIX))
+            saver = tf.train.Saver()
+            path = saver.save(self.sess, ckpt_file)
+            if self.verbose:
+                print('Pretrain saved at {}'.format(path))
 
         # 2. Train classifier
         if self.CLASS_NUM > 1 and not self.PRIOR_CLASSIFIER:
@@ -1018,7 +1011,7 @@ class ORGAN(object):
             gen = self.generator.deepcopy(self.sess)
             gen.copy_params(self.generator, self.sess)
             self.class_generators.append(gen)
-            self.class_rollouts.append(ClassifyRollout(gen, 0.8, self.PAD_NUM, self.ord_dict))
+            self.class_rollouts.append(ClassifyRollout(gen, 0.3, self.PAD_NUM, self.ord_dict))
         
         # Load classifier model
         from organ.prior_classifier import load_model

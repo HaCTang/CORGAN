@@ -13,7 +13,9 @@ from rdkit import rdBase
 from rdkit import DataStructs
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem import Crippen, MolFromSmiles, MolToSmiles
+from rdkit.Chem import AllChem 
 from rdkit.Chem import Descriptors
+from rdkit.ML.Descriptors import MoleculeDescriptors
 from copy import deepcopy
 from math import exp, log
 # Disables logs for Smiles conversion
@@ -266,9 +268,29 @@ def verified_and_below(smile, max_len):
     return len(smile) < max_len and verify_sequence(smile)
 
 
+# def verify_sequence(smile):
+#     mol = Chem.MolFromSmiles(smile)
+#     return smile != '' and mol is not None and mol.GetNumAtoms() > 1
+
 def verify_sequence(smile):
-    mol = Chem.MolFromSmiles(smile)
-    return smile != '' and mol is not None and mol.GetNumAtoms() > 1
+    """
+    Verifies if a SMILES sequence represents a valid molecule
+    """
+    try:
+        mol = Chem.MolFromSmiles(smile, sanitize=False)
+        if mol is not None:
+            try:
+                Chem.SanitizeMol(mol, sanitizeOps=Chem.SANITIZE_FINDRADICALS|
+                            Chem.SANITIZE_SETAROMATICITY|
+                            Chem.SANITIZE_SETCONJUGATION|
+                            Chem.SANITIZE_SETHYBRIDIZATION|
+                            Chem.SANITIZE_SYMMRINGS,
+                        catchErrors=True)
+            except:
+                mol = None
+        return smile != '' and mol is not None and mol.GetNumAtoms() > 1
+    except:
+        return smile != '' and mol is not None and mol.GetNumAtoms() > 1
 
 
 # def build_vocab(smiles, pad_char='_', start_char='^'):
@@ -846,6 +868,63 @@ def batch_SA(smiles, train_smiles=None):
     scores = [SA_score(s) if verify_sequence(s) else 0 for s in smiles]
     return scores
 
+def length_score(smile, max_length=80, min_length=15):
+    """计算分子长度的适宜性得分
+    
+    参数:
+        smile: SMILES字符串
+    返回:
+        score: 0-1之间的得分，长度在理想范围内得分高，过长或过短得分低
+    """
+    try:
+        # mol = Chem.MolFromSmiles(smile)
+        # mol = Chem.MolFromSmiles(smile, sanitize=False)
+        # if mol is not None:
+        #     try:
+        #         Chem.SanitizeMol(mol, sanitizeOps=Chem.SANITIZE_FINDRADICALS|
+        #                     Chem.SANITIZE_SETAROMATICITY|
+        #                     Chem.SANITIZE_SETCONJUGATION|
+        #                     Chem.SANITIZE_SETHYBRIDIZATION|
+        #                     Chem.SANITIZE_SYMMRINGS,
+        #                 catchErrors=True)
+        #     except:
+        #         return 0.0
+        # if mol is None:
+        #     return 0.0
+        # n_atoms = mol.GetNumAtoms()
+        n_atoms = len(smile)
+        
+        # 设定理想的原子数范围
+        min_atoms = min_length  # 最小原子数
+        max_atoms = max_length  # 最大原子数
+        Q1 = (max_atoms - min_atoms) // 4
+        opt_min = min_atoms + 1.5*Q1  # 最优范围下限
+        opt_max = max_atoms - Q1  # 最优范围上限
+
+        
+        if n_atoms < min_atoms:
+            # 分子过小，线性增长
+            score = remap(n_atoms, min_atoms, opt_min)
+        elif n_atoms > max_atoms:
+            # 分子过大，得分为0
+            score = 0.0
+        elif opt_min <= n_atoms <= opt_max:
+            # 在最优范围内，满分
+            score = 1.0
+        else:
+            # 在最优范围和最大值之间，线性下降
+            score = remap(n_atoms, opt_max, max_atoms)
+            score = 1.0 - score  # 反转，使得越接近最优范围分数越高
+            
+        return np.clip(score, 0.0, 1.0)
+    except:
+        return 0.0
+
+def batch_length(smiles, max_length=80, min_length=15, train_smiles=None):
+    """批量计算分子长度得分"""
+    scores = [length_score(s, max_length=max_length, min_length=min_length)
+              if verify_sequence(s) else 0 for s in smiles]
+    return scores
 
 #===== Reward function
 
@@ -875,3 +954,164 @@ def get_metrics():
     metrics['synthesizability'] = batch_SA
     metrics['druglikeliness'] = batch_druglikeliness
     return metrics
+
+def classifier_score(smile, class_label=None):
+    """使用预训练的分类器计算分子的得分
+    
+    参数:
+        smile: SMILES字符串
+    返回:
+        score: 0-1之间的得分，越接近目标类(0)得分越高
+    """
+    try:
+        # 1. 分子处理
+        mol = Chem.MolFromSmiles(smile, sanitize=False)
+        if mol is not None:
+            try:
+                Chem.SanitizeMol(mol, sanitizeOps=Chem.SANITIZE_FINDRADICALS|
+                            Chem.SANITIZE_SETAROMATICITY|
+                            Chem.SANITIZE_SETCONJUGATION|
+                            Chem.SANITIZE_SETHYBRIDIZATION|
+                            Chem.SANITIZE_SYMMRINGS,
+                        catchErrors=True)
+            except:
+                return 0.0
+        if mol is None:
+            return 0.0
+        
+        total_score = 1.0
+            
+        # 2. 检查cno含量约束
+        atom_symbols = [atom.GetSymbol().lower() for atom in mol.GetAtoms()]
+        total_atoms = len(atom_symbols)
+        nos_count = sum(1 for symbol in atom_symbols if symbol in ['n', 'o', 's'])
+        nos_ratio = nos_count / total_atoms
+        
+        if nos_ratio > 0.2:
+            # 线性惩罚
+            penalty = (nos_ratio - 0.2) / 0.4  # 0.6到0.8之间线性降低
+            if nos_ratio >= 0.4:
+                return 0.0
+            total_score = total_score - penalty
+        else:
+            total_score = total_score
+            
+        # 3. 检查大环
+        ring_info = mol.GetRingInfo()
+        for ring in ring_info.AtomRings():
+            if len(ring) > 7:  # 七元环以上
+                total_score = total_score - 0.3
+                
+        # # 4. 检查芳香环中的杂原子数量
+        # aromatic_rings = mol.GetAromaticAtoms()
+        ring_systems = Chem.GetSymmSSSR(mol)
+        
+        # for ring in ring_systems:
+        #     if all(mol.GetAtomWithIdx(i).GetIsAromatic() for i in ring):
+        #         hetero_count = sum(1 for i in ring 
+        #                          if mol.GetAtomWithIdx(i).GetSymbol().lower() in ['n', 'o', 's', 'p'])
+        #         if hetero_count > 2:
+        #             total_score = total_score - 0.1
+                    
+        # 5. 检查反芳香性
+        def is_antiaromatic(mol, ring):
+            if all(mol.GetAtomWithIdx(i).GetIsAromatic() for i in ring):
+                # 计算环中的π电子数
+                pi_electrons = 0
+                for i in ring:
+                    atom = mol.GetAtomWithIdx(i)
+                    if atom.GetIsAromatic():
+                        # 根据原子类型计算贡献的π电子
+                        symbol = atom.GetSymbol()
+                        if symbol == 'C':
+                            pi_electrons += 1
+                        elif symbol == 'N':
+                            if atom.GetFormalCharge() == 0:
+                                pi_electrons += 2
+                            else:
+                                pi_electrons += 1
+                        elif symbol in ['O', 'S']:
+                            pi_electrons += 2
+                return pi_electrons % 4 == 0  # 4n个π电子为反芳香性
+            return False
+            
+        for ring in ring_systems:
+            if is_antiaromatic(mol, ring):
+                total_score = total_score - 0.3
+                
+        # 6. 检查卤素含量
+        halogen_atoms = [atom.GetSymbol().lower() for atom in mol.GetAtoms() if atom.GetSymbol().lower() in ['f', 'cl', 'br', 'i']]
+        halogen_ratio = len(halogen_atoms) / total_atoms
+        if halogen_ratio > 0.2:
+            total_score = 0
+        
+        # 7. 计算分子描述符和分类器得分
+        descriptor_names = [
+            'NumAromaticRings', 'HallKierAlpha', 'BertzCT', 'PEOE_VSA8', 'VSA_EState6', 'NumAromaticCarbocycles',
+            'SlogP_VSA6', 'SMR_VSA7', 'MolMR', 'BalabanJ', 'fr_bicyclic', 'MinEStateIndex',
+            'Chi1', 'FpDensityMorgan1', 'Chi1n', 'Chi0n', 'LabuteASA', 'Ipc'
+        ]
+        
+        try:
+            calculator = MoleculeDescriptors.MolecularDescriptorCalculator(descriptor_names)
+            descriptors = calculator.CalcDescriptors(mol)
+            descriptors = [float(x) if x is not None else 0.0 for x in descriptors]
+            
+            # 检查描述符是否有效
+            if len(descriptors) < len(descriptor_names):
+                # 如果缺少某些描述符，用0填充到需要的长度
+                descriptors.extend([0.0] * (len(descriptor_names) - len(descriptors)))
+                
+            # 检查无效值
+            if any(np.isnan(x) or np.isinf(x) for x in descriptors):
+                # 将无效值替换为0
+                descriptors = [0.0 if np.isnan(x) or np.isinf(x) else x for x in descriptors]
+                
+            # 8. 加载分类器并预测
+            import os
+            import joblib
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            classifier_path = os.path.join(current_dir, 'molecular_classifier.pkl')
+            
+            if not os.path.exists(classifier_path):
+                alt_path = os.path.join(os.path.dirname(organ.__file__), 'molecular_classifier.pkl')
+                if os.path.exists(alt_path):
+                    classifier_path = alt_path
+                else:
+                    return 0.0
+            
+            try:
+                with open(classifier_path, 'rb') as f:
+                    classifier = joblib.load(f)
+                    
+                # 获取分类器预测的类别概率
+                if class_label == 0:
+                    proba = classifier.predict_proba([descriptors])[0]
+                    classifier_score = proba[0]  # 第一个元素是类别0的概率
+                else:
+                    proba = classifier.predict_proba([descriptors])[0]
+                    classifier_score = proba[1]  # 第一个元素是类别1的概率
+                
+                # 将分类器得分与约束结合
+                if total_score < 0:
+                    final_score = 0.0
+                else:
+                    final_score = classifier_score * total_score
+                
+                return final_score
+                
+            except:
+                return 0.0
+                
+        except:
+            return 0.0
+            
+    except:
+        return 0.0
+    
+def batch_classifier(smiles, train_smiles=None, class_labels=None):
+    """批量计算分类器得分"""
+    sample = zip(smiles, class_labels)
+    scores = [classifier_score(s, c) if verify_sequence(s) else 0 for s, c in sample]
+    return scores

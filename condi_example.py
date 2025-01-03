@@ -14,7 +14,7 @@ model.set_training_program([ 'diversity'], [5])
 model.load_metrics()
 
 # model.load_prev_pretraining(ckpt='ckpt/cond_test_pretrain_ckpt')
-model.organ_train(ckpt_dir='ckpt')
+# model.organ_train(ckpt_dir='ckpt')
 # model.load_prev_training(ckpt='./checkpoints/cond_test/cond_test_9.ckpt')
 model.conditional_train(ckpt_dir='ckpt', gen_steps=50)
 
